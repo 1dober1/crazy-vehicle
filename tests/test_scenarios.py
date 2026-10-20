@@ -1,4 +1,4 @@
-"""Сквозные Given–When–Then сценарии SPEC 0.1.0 через тестового пилота."""
+"""Сквозные Given–When–Then сценарии SPEC 0.2.0 через тестового пилота."""
 
 from typing import Any, Callable
 

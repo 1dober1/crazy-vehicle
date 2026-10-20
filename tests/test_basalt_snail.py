@@ -1,4 +1,4 @@
-"""Модульные проверки SPEC 0.1.0 в паттерне Arrange–Act–Assert."""
+"""Модульные проверки SPEC 0.2.0 в паттерне Arrange–Act–Assert."""
 
 import io
 import itertools
@@ -18,15 +18,23 @@ class BasaltSnailModuleTests(ContractTestCase):
 
     def test_TC_M_02_init_explicit_parameters(self) -> None:
         """TC_M_02: явные параметры и нормализация числовых типов."""
-        vehicle = self.vehicle_class("Тяжёлая", 350, 2, 60)
+        for keyword in (False, True):
+            with self.subTest(keyword=keyword):
+                if keyword:
+                    vehicle = self.vehicle_class(
+                        name="Тяжёлая", mass_kg=350,
+                        wheel_diameter_m=2, energy=60,
+                    )
+                else:
+                    vehicle = self.vehicle_class("Тяжёлая", 350, 2, 60)
 
-        self.assert_state(
-            self.public_state(vehicle),
-            self.expected_state(
-                name="Тяжёлая", mass_kg=350.0,
-                wheel_diameter_m=2.0, energy=60.0,
-            ),
-        )
+                self.assert_state(
+                    self.public_state(vehicle),
+                    self.expected_state(
+                        name="Тяжёлая", mass_kg=350.0,
+                        wheel_diameter_m=2.0, energy=60.0,
+                    ),
+                )
 
     def test_TC_M_03_init_boundaries(self) -> None:
         """TC_M_03: все сочетания включённых границ конструктора."""
@@ -156,6 +164,20 @@ class BasaltSnailModuleTests(ContractTestCase):
                     self.assert_result(cost, expected_cost)
                     self.assert_state(self.public_state(vehicle), before)
 
+        for keyword in (False, True):
+            with self.subTest(fractional=True, keyword=keyword):
+                vehicle = self.make_vehicle(mass_kg=150.5)
+                before = self.public_state(vehicle)
+
+                if keyword:
+                    cost = vehicle.calculate_energy(distance_km=0.3, terrain="sand")
+                else:
+                    cost = vehicle.calculate_energy(0.3, "sand")
+
+                self.assertIs(type(cost), float)
+                self.assertEqual(cost, 3.3862499999999995)
+                self.assert_state(self.public_state(vehicle), before)
+
     def test_TC_M_10_estimate_roll_cost(self) -> None:
         """TC_M_10: сворачивание и диаметр не меняют формулу расхода."""
         vehicle = self.make_vehicle(mass_kg=400.0, wheel_diameter_m=2.0)
@@ -258,11 +280,16 @@ class BasaltSnailModuleTests(ContractTestCase):
         cases = (
             ("road", 0.2, 90.0), ("rock", 0.4, 80.0), ("sand", 1.0, 70.0)
         )
-        for terrain, duration, energy in cases:
-            with self.subTest(terrain=terrain):
+        for (terrain, duration, energy), keyword in itertools.product(
+            cases, (False, True)
+        ):
+            with self.subTest(terrain=terrain, keyword=keyword):
                 vehicle = self.make_vehicle()
 
-                result = vehicle.move(2, terrain)
+                if keyword:
+                    result = vehicle.move(distance_km=2, terrain=terrain)
+                else:
+                    result = vehicle.move(2, terrain)
 
                 self.assert_result(result, duration)
                 self.assert_state(
@@ -299,6 +326,36 @@ class BasaltSnailModuleTests(ContractTestCase):
                     self.public_state(vehicle),
                     self.expected_state(energy=0.0, distance_km=1.0),
                 )
+                self.assertEqual(vehicle.energy, 0.0)
+
+        for initial_energy, expected_energy in (
+            (3.3862499999999995, 0.0),
+            (3.38625, 4.440892098500626e-16),
+        ):
+            with self.subTest(fractional_energy=initial_energy):
+                vehicle = self.make_vehicle(mass_kg=150.5, energy=initial_energy)
+
+                result = vehicle.move(0.3, "sand")
+
+                self.assert_result(result, 0.15)
+                self.assert_state(
+                    self.public_state(vehicle),
+                    self.expected_state(
+                        mass_kg=150.5, energy=expected_energy, distance_km=0.3,
+                    ),
+                )
+                self.assertEqual(vehicle.energy, expected_energy)
+
+        with self.subTest(fractional_energy=3.386249999999999):
+            vehicle = self.make_vehicle(mass_kg=150.5, energy=3.386249999999999)
+            before = self.public_state(vehicle)
+
+            self.assert_atomic_error(
+                vehicle, self.contract.InsufficientEnergyError,
+                "not enough energy to move", lambda: vehicle.move(0.3, "sand"),
+            )
+
+            self.assertEqual(self.public_state(vehicle), before)
 
     def test_TC_M_19_insufficient_energy(self) -> None:
         """TC_M_19: движение и оба переключения атомарны при нехватке заряда."""
@@ -395,17 +452,22 @@ class BasaltSnailModuleTests(ContractTestCase):
 
     def test_TC_M_24_refuel(self) -> None:
         """TC_M_24: зарядка сохраняет пройденный путь и режим roll."""
-        vehicle = self.make_vehicle(energy=60.0)
-        vehicle.fold_shell()
-        vehicle.move(1, "road")
+        for keyword in (False, True):
+            with self.subTest(keyword=keyword):
+                vehicle = self.make_vehicle(energy=60.0)
+                vehicle.fold_shell()
+                vehicle.move(1, "road")
 
-        result = vehicle.refuel(25)
+                if keyword:
+                    result = vehicle.refuel(amount=25)
+                else:
+                    result = vehicle.refuel(25)
 
-        self.assertIsNone(result)
-        self.assert_state(
-            self.public_state(vehicle),
-            self.expected_state(energy=70.0, distance_km=1.0, mode="roll"),
-        )
+                self.assertIsNone(result)
+                self.assert_state(
+                    self.public_state(vehicle),
+                    self.expected_state(energy=70.0, distance_km=1.0, mode="roll"),
+                )
 
     def test_TC_M_25_refuel_cap(self) -> None:
         """TC_M_25: лишний заряд отбрасывается, полный аккумулятор допустим."""
