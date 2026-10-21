@@ -1,4 +1,4 @@
-"""Модульные проверки SPEC 0.3.0 в паттерне Arrange–Act–Assert."""
+"""Модульные проверки SPEC 1.0.0 в паттерне Arrange–Act–Assert."""
 
 import io
 import itertools
