@@ -1,4 +1,4 @@
-"""Модульные проверки SPEC 0.2.0 в паттерне Arrange–Act–Assert."""
+"""Модульные проверки SPEC 0.3.0 в паттерне Arrange–Act–Assert."""
 
 import io
 import itertools
@@ -108,21 +108,26 @@ class BasaltSnailModuleTests(ContractTestCase):
                     )
 
     def test_TC_M_07_attributes_are_read_only(self) -> None:
-        """TC_M_07: присваивание каждому атрибуту запрещено и атомарно."""
+        """TC_M_07: присваивание и удаление атрибутов запрещены и атомарны."""
         replacements = {
             "name": "Другое имя", "mass_kg": 300.0,
             "wheel_diameter_m": 2.0, "energy": 50.0,
             "distance_km": 10.0, "mode": "roll",
         }
-        for attribute, replacement in replacements.items():
-            with self.subTest(attribute=attribute):
+        for (attribute, replacement), operation in itertools.product(
+            replacements.items(), ("assign", "delete")
+        ):
+            with self.subTest(attribute=attribute, operation=operation):
                 vehicle = self.make_vehicle()
                 before = self.public_state(vehicle)
 
                 with self.assertRaises(AttributeError):
-                    setattr(vehicle, attribute, replacement)
+                    if operation == "assign":
+                        setattr(vehicle, attribute, replacement)
+                    else:
+                        delattr(vehicle, attribute)
 
-                self.assert_state(self.public_state(vehicle), before)
+                self.assert_state(self.public_state(vehicle), before, exact=True)
 
     def test_TC_M_08_init_error_precedence(self) -> None:
         """TC_M_08: тип и значение каждого параметра проверяются по порядку."""
@@ -451,7 +456,7 @@ class BasaltSnailModuleTests(ContractTestCase):
         )
 
     def test_TC_M_24_refuel(self) -> None:
-        """TC_M_24: зарядка сохраняет пройденный путь и режим roll."""
+        """TC_M_24: целая и дробная зарядка сохраняют путь и режим."""
         for keyword in (False, True):
             with self.subTest(keyword=keyword):
                 vehicle = self.make_vehicle(energy=60.0)
@@ -468,6 +473,22 @@ class BasaltSnailModuleTests(ContractTestCase):
                     self.public_state(vehicle),
                     self.expected_state(energy=70.0, distance_km=1.0, mode="roll"),
                 )
+
+        for keyword in (False, True):
+            with self.subTest(amount=0.25, keyword=keyword):
+                vehicle = self.make_vehicle(energy=60.0)
+
+                if keyword:
+                    result = vehicle.refuel(amount=0.25)
+                else:
+                    result = vehicle.refuel(0.25)
+
+                self.assertIsNone(result)
+                self.assert_state(
+                    self.public_state(vehicle),
+                    self.expected_state(energy=60.25),
+                )
+                self.assertEqual(vehicle.energy, 60.25)
 
     def test_TC_M_25_refuel_cap(self) -> None:
         """TC_M_25: лишний заряд отбрасывается, полный аккумулятор допустим."""

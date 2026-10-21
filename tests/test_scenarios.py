@@ -1,4 +1,4 @@
-"""Сквозные Given–When–Then сценарии SPEC 0.2.0 через тестового пилота."""
+"""Сквозные Given–When–Then сценарии SPEC 0.3.0 через тестового пилота."""
 
 from typing import Any, Callable
 
@@ -35,7 +35,7 @@ class BasaltSnailScenarioTests(ContractTestCase):
     ) -> None:
         before = pilot.status()
         self.assert_error(error_class, message, action)
-        self.assert_state(pilot.status(), before)
+        self.assert_state(pilot.status(), before, exact=True)
 
     def test_TC_S_01_mixed_terrain_delivery(self) -> None:
         """TC_S_01: Given обычная улитка; When три грунта; Then доставка."""

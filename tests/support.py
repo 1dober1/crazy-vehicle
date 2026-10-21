@@ -52,13 +52,15 @@ class ContractTestCase(unittest.TestCase):
         self,
         actual: dict[str, str | float],
         expected: dict[str, str | float],
+        *,
+        exact: bool = False,
     ) -> None:
         self.assertIs(type(actual), dict)
         self.assertEqual(set(actual), set(expected))
         for attribute, expected_value in expected.items():
             with self.subTest(attribute=attribute):
                 self.assertIs(type(actual[attribute]), type(expected_value))
-                if isinstance(expected_value, float):
+                if isinstance(expected_value, float) and not exact:
                     self.assertAlmostEqual(actual[attribute], expected_value, places=7)
                 else:
                     self.assertEqual(actual[attribute], expected_value)
@@ -87,4 +89,4 @@ class ContractTestCase(unittest.TestCase):
     ) -> None:
         before = self.public_state(vehicle)
         self.assert_error(error_class, message, action)
-        self.assert_state(self.public_state(vehicle), before)
+        self.assert_state(self.public_state(vehicle), before, exact=True)
