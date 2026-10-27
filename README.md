@@ -72,3 +72,15 @@ python3 -m unittest discover -s tests -t . -v   # 40 тестов, OK
 ```
 
 Вопросы разработчика к ТЗ и тестам — в [BUGREPORT.md](BUGREPORT.md).
+
+## Защита
+
+- [Сценарий демонстрации](DEMO.md).
+- [Материал выступления](PRESENTATION.md).
+- [Рефлексия автора ТЗ](REFLECTION.md).
+
+Запуск демонстрации из корня проекта:
+
+```bash
+python3 demo.py
+```
